@@ -3,17 +3,35 @@ import os
 
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
-from .config import load_dotenv, require_directory_env
+from .config import load_dotenv, require_directory_env, require_env
 from .ui import console, print_summary
 
 
-OUTPUT_CSV = "motion_candidates.csv"
 PROGRESS_EVERY = 500
+IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".heic")
 
 
-def run(output_csv=OUTPUT_CSV, progress_every=PROGRESS_EVERY):
+def find_image_name(stem, files_by_name):
+    for extension in IMAGE_EXTENSIONS:
+        image_name = files_by_name.get(f"{stem}{extension}")
+        if image_name:
+            return image_name
+    return None
+
+
+def build_candidate(root, mp4_name, image_name):
+    mp4_path = os.path.join(root, mp4_name)
+    return {
+        "mp4_path": mp4_path,
+        "jpg_path": os.path.join(root, image_name),
+        "mp4_size_MB": round(os.path.getsize(mp4_path) / (1024 * 1024), 2),
+    }
+
+
+def run(progress_every=PROGRESS_EVERY):
     load_dotenv()
     root_dir = require_directory_env("IMMICH_ROOT_DIR")
+    output_csv = require_env("MOTION_CANDIDATES_CSV")
 
     candidates = []
     total_mp4 = 0
@@ -44,35 +62,27 @@ def run(output_csv=OUTPUT_CSV, progress_every=PROGRESS_EVERY):
 
         for root, _, files in os.walk(root_dir):
             total_dirs += 1
-            files_lower = {file_name.lower(): file_name for file_name in files}
+            files_by_name = {file_name.lower(): file_name for file_name in files}
             progress.update(task_id, directories=total_dirs)
 
             for file_name in files:
-                if not file_name.lower().endswith(".mp4"):
+                stem, extension = os.path.splitext(file_name)
+                if extension.lower() != ".mp4":
                     continue
 
                 total_mp4 += 1
-                base = file_name[:-4]
-                jpg_name = base + ".jpg"
 
                 if progress_every > 0 and total_mp4 % progress_every == 0:
                     console.log(
                         f"Scanned {total_mp4} MP4 files and found {len(candidates)} candidates so far."
                     )
 
-                if jpg_name.lower() not in files_lower:
+                image_name = find_image_name(stem.lower(), files_by_name)
+                if image_name is None:
                     progress.update(task_id, mp4=total_mp4, candidates=len(candidates))
                     continue
 
-                mp4_path = os.path.join(root, file_name)
-                jpg_path = os.path.join(root, files_lower[jpg_name.lower()])
-                candidates.append(
-                    {
-                        "mp4_path": mp4_path,
-                        "jpg_path": jpg_path,
-                        "mp4_size_MB": round(os.path.getsize(mp4_path) / (1024 * 1024), 2),
-                    }
-                )
+                candidates.append(build_candidate(root, file_name, image_name))
                 progress.update(task_id, mp4=total_mp4, candidates=len(candidates))
 
     if candidates:

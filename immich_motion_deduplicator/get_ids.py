@@ -15,10 +15,6 @@ from .config import get_immich_api_url, load_dotenv, require_env
 from .ui import print_summary
 
 
-INPUT_CSV = "motion_candidates.csv"
-OUTPUT_CSV = "motion_candidates_with_ids.csv"
-
-
 def get_asset_lookup(filename, api_url, headers):
     payload = {
         "originalFileName": filename,
@@ -44,10 +40,12 @@ def get_asset_lookup(filename, api_url, headers):
     return None, "multiple_matches"
 
 
-def run(input_csv=INPUT_CSV, output_csv=OUTPUT_CSV):
+def run():
     load_dotenv()
     api_url = get_immich_api_url()
     api_key = require_env("IMMICH_API_KEY")
+    input_csv = require_env("MOTION_CANDIDATES_CSV")
+    output_csv = require_env("MOTION_CANDIDATES_WITH_IDS_CSV")
     headers = {
         "x-api-key": api_key,
         "Content-Type": "application/json",

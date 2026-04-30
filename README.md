@@ -32,9 +32,12 @@ Create a `.env` file in the repo root with:
 IMMICH_ROOT_DIR=/path/to/your/immich/library
 IMMICH_API_URL=http://your-immich-host:2283/api
 IMMICH_API_KEY=your_api_key
+MOTION_CANDIDATES_CSV=motion_candidates.csv
+MOTION_CANDIDATES_WITH_IDS_CSV=motion_candidates_with_ids.csv
 ```
 
 `IMMICH_API_URL` may include `/api` or omit it.
+Set both CSV variables in `.env`; the commands read them directly.
 
 ## Usage
 

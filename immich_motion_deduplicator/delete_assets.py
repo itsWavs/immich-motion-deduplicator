@@ -16,7 +16,6 @@ from .config import get_immich_api_url, load_dotenv, require_env
 from .ui import console, print_summary
 
 
-INPUT_CSV = "motion_candidates_with_ids.csv"
 BATCH_SIZE = 25
 DRY_RUN = True
 SLEEP_BETWEEN_BATCHES = 3.5
@@ -44,10 +43,11 @@ def delete_batch(ids, api_url, headers):
         return {"status_code": response.status_code, "message": "No content returned"}
 
 
-def run(input_csv=INPUT_CSV, batch_size=BATCH_SIZE, dry_run=DRY_RUN):
+def run(batch_size=BATCH_SIZE, dry_run=DRY_RUN):
     load_dotenv()
     api_url = get_immich_api_url()
     api_key = require_env("IMMICH_API_KEY")
+    input_csv = require_env("MOTION_CANDIDATES_WITH_IDS_CSV")
     headers = {
         "x-api-key": api_key,
         "Content-Type": "application/json",
