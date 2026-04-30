@@ -2,14 +2,15 @@ import os
 from pathlib import Path
 
 
-ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+ENV_FILENAME = ".env"
 
 
 def load_dotenv():
-    if not ENV_PATH.exists():
+    env_path = Path.cwd() / ENV_FILENAME
+    if not env_path.exists():
         return
 
-    for raw_line in ENV_PATH.read_text(encoding="utf-8").splitlines():
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue

@@ -1,13 +1,46 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
 [project]
 name = "immich-motion-deduplicator"
 version = "0.1.0"
 description = "Find and remove duplicated motion video assets in Immich"
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.9"
+keywords = ["immich", "cli", "google-takeout", "deduplication", "photos"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Utilities",
+]
 dependencies = [
     "rich>=14.2.0",
     "requests>=2.32.5",
 ]
 
+[project.urls]
+Homepage = "https://github.com/itsWavs/Immich-motion-deduplicator"
+Issues = "https://github.com/itsWavs/Immich-motion-deduplicator/issues"
+Repository = "https://github.com/itsWavs/Immich-motion-deduplicator"
+
 [project.scripts]
 immich-motion-deduplicator = "immich_motion_deduplicator.__main__:main"
+
+[project.optional-dependencies]
+dev = [
+    "build>=1.2.2",
+    "pytest>=8.4.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

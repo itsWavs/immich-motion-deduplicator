@@ -1,0 +1,14 @@
+services:
+  deduplicator:
+    build:
+      context: .
+    image: immich-motion-deduplicator:latest
+    working_dir: /work
+    env_file:
+      - .env
+    environment:
+      IMMICH_ROOT_DIR: /library
+    volumes:
+      - ./:/work
+      - /path/to/your/immich/library:/library:ro
+    command: ["all", "--dry-run"]
