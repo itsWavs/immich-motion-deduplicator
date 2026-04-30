@@ -1,0 +1,12 @@
+[project]
+name = "immich-motion-deduplicator"
+version = "0.1.0"
+description = "Find and remove duplicated motion video assets in Immich"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "requests>=2.32.5",
+]
+
+[project.scripts]
+immich-motion-deduplicator = "immich_motion_deduplicator.__main__:main"
