@@ -1,5 +1,7 @@
 import argparse
 
+from .ui import error_console, print_stage
+
 
 def build_parser():
     parser = argparse.ArgumentParser(description="Immich motion deduplicator")
@@ -42,30 +44,37 @@ def main():
     parser = build_parser()
     args = parser.parse_args()
 
-    if args.command == "scan":
-        from . import scan_library
+    try:
+        if args.command == "scan":
+            from . import scan_library
 
-        scan_library.run(progress_every=args.progress_every)
-        return
+            scan_library.run(progress_every=args.progress_every)
+            return
 
-    if args.command == "ids":
-        from . import get_ids
+        if args.command == "ids":
+            from . import get_ids
 
-        get_ids.main()
-        return
+            get_ids.main()
+            return
 
-    if args.command == "delete":
-        from . import delete_assets
+        if args.command == "delete":
+            from . import delete_assets
 
-        delete_assets.run(dry_run=not args.execute)
-        return
+            delete_assets.run(dry_run=not args.execute)
+            return
 
-    if args.command == "all":
-        from . import delete_assets, get_ids, scan_library
+        if args.command == "all":
+            from . import delete_assets, get_ids, scan_library
 
-        scan_library.run(progress_every=args.progress_every)
-        get_ids.main()
-        delete_assets.run(dry_run=not args.execute)
+            print_stage(1, 3, "Scan library")
+            scan_library.run(progress_every=args.progress_every)
+            print_stage(2, 3, "Resolve asset IDs")
+            get_ids.main()
+            print_stage(3, 3, "Delete matched assets")
+            delete_assets.run(dry_run=not args.execute)
+    except (RuntimeError, FileNotFoundError, NotADirectoryError) as exc:
+        error_console.print(f"[bold red]Error:[/bold red] {exc}")
+        raise SystemExit(1) from exc
 
 
 if __name__ == "__main__":

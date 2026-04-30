@@ -5,6 +5,7 @@ description = "Find and remove duplicated motion video assets in Immich"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
+    "rich>=14.2.0",
     "requests>=2.32.5",
 ]
 

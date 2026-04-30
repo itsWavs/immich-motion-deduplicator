@@ -2,15 +2,24 @@ import csv
 import os
 
 import requests
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 
 from .config import get_immich_api_url, load_dotenv, require_env
+from .ui import print_summary
 
 
 INPUT_CSV = "motion_candidates.csv"
 OUTPUT_CSV = "motion_candidates_with_ids.csv"
 
 
-def get_asset_id(filename, api_url, headers):
+def get_asset_lookup(filename, api_url, headers):
     payload = {
         "originalFileName": filename,
         "type": "VIDEO",
@@ -28,13 +37,11 @@ def get_asset_id(filename, api_url, headers):
     items = data.get("assets", {}).get("items", [])
 
     if len(items) == 1:
-        return items[0]["id"]
+        return items[0]["id"], "matched"
     if len(items) == 0:
-        print(f"[NOT FOUND] {filename}")
-        return None
+        return None, "not_found"
 
-    print(f"[MULTIPLE MATCHES] {filename}")
-    return None
+    return None, "multiple_matches"
 
 
 def run(input_csv=INPUT_CSV, output_csv=OUTPUT_CSV):
@@ -46,21 +53,58 @@ def run(input_csv=INPUT_CSV, output_csv=OUTPUT_CSV):
         "Content-Type": "application/json",
     }
 
-    with open(input_csv, newline="", encoding="utf-8") as infile, open(
-        output_csv, "w", newline="", encoding="utf-8"
-    ) as outfile:
-        reader = csv.DictReader(infile)
-        fieldnames = reader.fieldnames + ["asset_id"]
-        writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+    with open(input_csv, newline="", encoding="utf-8") as infile:
+        rows = list(csv.DictReader(infile))
 
+    if not rows:
+        print_summary("ID resolution complete", [("Input rows", 0), ("Matched asset IDs", 0)])
+        return 0
+
+    fieldnames = list(rows[0].keys()) + ["asset_id"]
+    matched = 0
+    not_found = 0
+    multiple_matches = 0
+
+    progress = Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("{task.completed}/{task.total}"),
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
+    )
+
+    with open(output_csv, "w", newline="", encoding="utf-8") as outfile, progress:
+        writer = csv.DictWriter(outfile, fieldnames=fieldnames)
         writer.writeheader()
 
-        for row in reader:
-            filename = os.path.basename(row["mp4_path"]).upper()
-            row["asset_id"] = get_asset_id(filename, api_url, headers)
-            writer.writerow(row)
+        task_id = progress.add_task("Resolving Immich asset IDs", total=len(rows))
 
-    print("Done.")
+        for row in rows:
+            filename = os.path.basename(row["mp4_path"]).upper()
+            asset_id, status = get_asset_lookup(filename, api_url, headers)
+            row["asset_id"] = asset_id
+            writer.writerow(row)
+            progress.advance(task_id)
+
+            if status == "matched":
+                matched += 1
+            elif status == "not_found":
+                not_found += 1
+            else:
+                multiple_matches += 1
+
+    print_summary(
+        "ID resolution complete",
+        [
+            ("Input rows", len(rows)),
+            ("Matched asset IDs", matched),
+            ("Not found", not_found),
+            ("Multiple matches", multiple_matches),
+            ("Output file", output_csv),
+        ],
+    )
+    return matched
 
 
 def main():

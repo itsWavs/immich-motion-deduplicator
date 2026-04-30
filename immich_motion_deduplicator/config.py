@@ -25,6 +25,18 @@ def require_env(name):
     return value
 
 
+def require_directory_env(name):
+    value = Path(require_env(name)).expanduser()
+
+    if not value.exists():
+        raise FileNotFoundError(f"Configured path for {name} does not exist: {value}")
+
+    if not value.is_dir():
+        raise NotADirectoryError(f"Configured path for {name} is not a directory: {value}")
+
+    return str(value)
+
+
 def get_immich_api_url():
     api_url = require_env("IMMICH_API_URL").rstrip("/")
     if not api_url.endswith("/api"):

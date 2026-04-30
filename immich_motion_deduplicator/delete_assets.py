@@ -1,9 +1,19 @@
 import csv
+import math
 import time
 
 import requests
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 
 from .config import get_immich_api_url, load_dotenv, require_env
+from .ui import console, print_summary
 
 
 INPUT_CSV = "motion_candidates_with_ids.csv"
@@ -50,24 +60,64 @@ def run(input_csv=INPUT_CSV, batch_size=BATCH_SIZE, dry_run=DRY_RUN):
             if row.get("asset_id"):
                 asset_ids.append(row["asset_id"])
 
-    print(f"{len(asset_ids)} assets to delete.")
+    console.print(f"{len(asset_ids)} assets ready for deletion.")
+
+    if not asset_ids:
+        print_summary("Deletion complete", [("Assets deleted", 0), ("Failed batches", 0)])
+        return 0
 
     if dry_run:
-        print("DRY RUN enabled - no deletion performed.")
-        print("Processing complete.")
-        return
+        print_summary(
+            "Dry run",
+            [
+                ("Assets queued", len(asset_ids)),
+                ("Batch size", batch_size),
+                ("Deletion executed", "no"),
+            ],
+        )
+        return len(asset_ids)
 
-    for batch_num, batch in enumerate(chunk_list(asset_ids, batch_size), start=1):
-        print(f"Deleting batch {batch_num} ({len(batch)} assets)...")
-        try:
-            result = delete_batch(batch, api_url, headers)
-            print(f"Batch {batch_num} OK. API response: {result}")
-        except requests.RequestException as exc:
-            print(f"[ERROR] Batch {batch_num} failed:", exc)
+    total_batches = math.ceil(len(asset_ids) / batch_size)
+    deleted_assets = 0
+    failed_batches = 0
 
-        time.sleep(SLEEP_BETWEEN_BATCHES)
+    progress = Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("{task.completed}/{task.total}"),
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
+        console=console,
+    )
 
-    print("Processing complete.")
+    with progress:
+        task_id = progress.add_task("Deleting assets", total=total_batches)
+
+        for batch_num, batch in enumerate(chunk_list(asset_ids, batch_size), start=1):
+            progress.update(task_id, description=f"Deleting batch {batch_num}/{total_batches}")
+            try:
+                delete_batch(batch, api_url, headers)
+                deleted_assets += len(batch)
+            except requests.RequestException as exc:
+                failed_batches += 1
+                console.log(f"Batch {batch_num} failed: {exc}")
+
+            progress.advance(task_id)
+
+            if batch_num < total_batches:
+                time.sleep(SLEEP_BETWEEN_BATCHES)
+
+    print_summary(
+        "Deletion complete",
+        [
+            ("Assets requested", len(asset_ids)),
+            ("Assets deleted", deleted_assets),
+            ("Failed batches", failed_batches),
+            ("Batch size", batch_size),
+        ],
+    )
+    return deleted_assets
 
 
 def main():
