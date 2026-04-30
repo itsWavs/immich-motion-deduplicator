@@ -16,7 +16,7 @@ This script helps you safely remove the duplicated motion video files.◊
 
 1. Scans your library, looks for photos and videos with the same basename, and creates a `.csv`
 2. Queries the Immich API (`/search/metadata`) and adds the ID for each asset (matching by filename)
-3. Deletes matched video assets in safe batches (supports dry-run mode)
+3. Deletes matched video assets in safe batches (`delete` supports dry-run mode)
 
 ---
 
@@ -50,4 +50,8 @@ python -m immich_motion_deduplicator delete
 python -m immich_motion_deduplicator all
 ```
 
-Use `--execute` with `delete` or `all` to perform real deletions.
+`delete` runs in dry-run mode by default; use `--execute` to perform real deletions.
+
+`all` runs the full flow and deletes by default so it can be used non-interactively in automation.
+
+Use `all --dry-run` to preview the matches without deleting anything.

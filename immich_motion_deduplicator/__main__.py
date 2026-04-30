@@ -24,11 +24,14 @@ def build_parser():
         help="Perform deletion instead of running in dry-run mode",
     )
 
-    all_parser = subparsers.add_parser("all", help="Run scan, ids, then delete")
+    all_parser = subparsers.add_parser(
+        "all",
+        help="Run scan, ids, then delete matched assets",
+    )
     all_parser.add_argument(
-        "--execute",
+        "--dry-run",
         action="store_true",
-        help="Perform deletion instead of running in dry-run mode",
+        help="Preview matched deletions without deleting assets",
     )
     all_parser.add_argument(
         "--progress-every",
@@ -71,7 +74,7 @@ def main():
             print_stage(2, 3, "Resolve asset IDs")
             get_ids.main()
             print_stage(3, 3, "Delete matched assets")
-            delete_assets.run(dry_run=not args.execute)
+            delete_assets.run(dry_run=args.dry_run)
     except (RuntimeError, FileNotFoundError, NotADirectoryError) as exc:
         error_console.print(f"[bold red]Error:[/bold red] {exc}")
         raise SystemExit(1) from exc
